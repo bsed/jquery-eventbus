@@ -39,7 +39,7 @@ $.eventBus = {
 
 	trigger : function(tags, data) {
 
-		var resultIds = {}, counter = 1;
+		var resultIds = {}, counterByIds = {};
 		$.each(tagsToList(tags), function(i) {
 			var tag = this, ids = tagToIds[tag];
 			if(!ids) {
@@ -47,16 +47,20 @@ $.eventBus = {
 			}
 			if(i == 0) {
 				$.each(ids, function(id) {
-					idsToFns[id][tag].min == 1?
-						idsToFns[id][tag].fn.call(window, data) :
+					if(idsToFns[id][tag].min == 1) {
+						idsToFns[id][tag].fn.call(window, data);
+					}
+					else {
 						resultIds[id] = true;
+						counterByIds[id] = 1;
+					}
 				});
 			}
 			else {
 				$.each(resultIds, function(id) {
 					if(ids[id]) {
-						++counter;
-						if(idsToFns[id][tag].min <= counter) {
+						++counterByIds[id];
+						if(idsToFns[id][tag].min <= counterByIds[id]) {
 							idsToFns[id][tag].fn.call(window, data);
 							delete resultIds[id];
 						}
