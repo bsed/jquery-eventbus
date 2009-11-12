@@ -12,7 +12,7 @@
 
 var fnIdsCounter = 0, idsToFns = [], tagToIds = {},
 	tagsToList = function(tags) {
-		return ($.isArray(tags)? tags : tags.split(','));
+		return ($.isArray(tags)? tags : tags.split(' '));
 	};
 
 $.eventBus = {
