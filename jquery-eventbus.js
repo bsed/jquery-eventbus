@@ -91,7 +91,7 @@ $.eventBus = {
 		$.each(getTagCombinations(tagsToList(tags)), function() {
 			tagsToIds[this] && $.each(tagsToIds[this], function(id) {
 				if(!calledFns[id]) {
-					this.call(window, data);
+					this(data);
 					calledFns[id] = true;
 				}
 			});
