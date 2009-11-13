@@ -1,5 +1,5 @@
 /**
- * Tagged EventBus plugin 1.0.0
+ * Tagged EventBus plugin 1.1.0
  *
  * Copyright (c) 2009 Filatov Dmitry (alpha@zforms.ru)
  * Dual licensed under the MIT and GPL licenses:
@@ -10,64 +10,93 @@
 
 (function($) {
 
-var fnIdsCounter = 0, idsToFns = [], tagToIds = {},
-	tagsToList = function(tags) {
-		return ($.isArray(tags)? tags : tags.split(' '));
-	};
+var tagsToList = function(tags) {
+		return ($.isArray(tags)? tags : tags.split(' ')).sort();
+	},
+	getCombinations = (function() {
+		var cache = {};
+		return function(length, start) {
+
+			if(typeof start == 'undefined') {
+				if(cache[length]) {
+					return cache[length];
+				}
+				start = 0;
+			}
+
+			if(start == length - 1) {
+				return [[start]];
+			}
+
+			var subcombinations = getCombinations(length, start + 1), result = [[start]];
+			for(var i = 0; i < subcombinations.length; i++) {
+				result.push(subcombinations[i], [start].concat(subcombinations[i]));
+			}
+			return result;
+
+		};
+	})(),
+	getTagCombinations = (function() {
+		var cache = {};
+		return function(tagList) {
+
+			var tagHash = tagList.join(' ');
+			if(cache[tagHash]) {
+				return cache[tagHash];
+			}
+			var combinations = getCombinations(tagList.length), result = [];
+			for(var i = 0, ilength = combinations.length; i < ilength; i++) {
+				var tagCombination = [];
+				for(var j = 0, jlength = combinations[i].length; j < jlength; j++) {
+					tagCombination.push(tagList[combinations[i][j]]);
+				}
+				result.push(tagCombination.join(' '));
+			}
+			return cache[tagHash] = result;
+
+		};
+	})();
+
+var fnIdsCounter = 0, tagsToIds = {};
 
 $.eventBus = {
 
 	bind : function(tags, fn) {
 
-		if(typeof fn.__id == 'undefined') {
-			fn.__id = ++fnIdsCounter;
-			idsToFns[fnIdsCounter] = {};
+		typeof fn.__eb_id == 'undefined' && (fn.__eb_id = ++fnIdsCounter);
+
+		var tagHash = tagsToList(tags).join(' ');
+		(tagsToIds[tagHash] || (tagsToIds[tagHash] = {}))[fn.__eb_id] = fn;
+
+		return this;
+
+	},
+
+	unbind : function(tags, fn) {
+
+		if(typeof fn.__eb_id == 'undefined') {
+			return;
 		}
-		var tagList = tagsToList(tags), tagLength = tagList.length;
-		$.each(tagsToList(tags), function() {
-			if(typeof idsToFns[fnIdsCounter][this] == 'undefined') {
-				idsToFns[fnIdsCounter][this] = { fn : fn, min : tagLength };
-			}
-			else if(tagLength < idsToFns[fnIdsCounter][this].min) {
-				idsToFns[fnIdsCounter][this].min = tagLength;
-			}
-			(tagToIds[this] || (tagToIds[this] = {}))[fnIdsCounter] = true;
-		});
+
+		var tagHash = tagsToList(tags).join(' ');
+		tagsToIds[tagHash] && tagsToIds[tagHash][fn.__eb_id] && delete tagsToIds[tagHash][fn.__eb_id];
+
 		return this;
 
 	},
 
 	trigger : function(tags, data) {
 
-		var resultIds = {}, counterByIds = {};
-		$.each(tagsToList(tags), function(i) {
-			var tag = this, ids = tagToIds[tag];
-			if(!ids) {
-				return;
-			}
-			if(i == 0) {
-				$.each(ids, function(id) {
-					if(idsToFns[id][tag].min == 1) {
-						idsToFns[id][tag].fn.call(window, data);
-					}
-					else {
-						resultIds[id] = true;
-						counterByIds[id] = 1;
-					}
-				});
-			}
-			else {
-				$.each(resultIds, function(id) {
-					if(ids[id]) {
-						++counterByIds[id];
-						if(idsToFns[id][tag].min <= counterByIds[id]) {
-							idsToFns[id][tag].fn.call(window, data);
-							delete resultIds[id];
-						}
-					}
-				});
-			}
+		var calledFns = {};
+		$.each(getTagCombinations(tagsToList(tags)), function() {
+			tagsToIds[this] && $.each(tagsToIds[this], function(id) {
+				if(!calledFns[id]) {
+					this.call(window, data);
+					calledFns[id] = true;
+				}
+			});
 		});
+
 		return this;
 
 	}
