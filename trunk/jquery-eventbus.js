@@ -74,13 +74,16 @@ $.eventBus = {
 
 	unbind : function(tags, fn) {
 
-		if(typeof fn.__eb_id == 'undefined') {
-			return;
-		}
-
 		var tagHash = tagsToList(tags).join(' ');
-		tagsToIds[tagHash] && tagsToIds[tagHash][fn.__eb_id] && delete tagsToIds[tagHash][fn.__eb_id];
-
+		if(tagsToIds[tagHash]) {
+			if(fn) {
+				tagsToIds[tagHash][fn.__eb_id] && delete tagsToIds[tagHash][fn.__eb_id];
+			}
+			else {
+				delete tagsToIds[tagHash];
+			}
+		}
+		
 		return this;
 
 	},
