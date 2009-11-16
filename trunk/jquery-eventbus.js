@@ -1,5 +1,5 @@
 /**
- * Tagged EventBus plugin 1.1.5
+ * Tagged EventBus plugin 1.1.6
  *
  * Copyright (c) 2009 Filatov Dmitry (alpha@zforms.ru)
  * Dual licensed under the MIT and GPL licenses:
@@ -15,27 +15,23 @@ var tagsToList = function(tags) {
 	},
 	getCombinations = (function() {
 		var cache = {};
-		return function(length, start) {
+		return function(length) {
 
-			if(typeof start == 'undefined') {
-				if(cache[length]) {
-					return cache[length];
+			if(cache[length]) {
+				return cache[length];
+			}
+
+			for(var i = 1, result = []; i < (1 << length); ++i) {
+				for(var j = i, k = 0, subresult = []; k <= length; ++k, j >>= 1) {
+					j&0x1 && subresult.push(k);
 				}
-				start = 0;
+				result.push(subresult);
 			}
 
-			if(start == length - 1) {
-				return [[start]];
-			}
-
-			var subcombinations = getCombinations(length, start + 1), result = [[start]];
-			for(var i = 0; i < subcombinations.length; i++) {
-				result.push(subcombinations[i], [start].concat(subcombinations[i]));
-			}
 			return result;
 
 		};
-	})(),
+	})();
 	getTagCombinations = (function() {
 		var cache = {};
 		return function(tagList) {
@@ -46,9 +42,9 @@ var tagsToList = function(tags) {
 			}
 			var combinations = getCombinations(tagList.length), result = [];
 			for(var i = 0, ilength = combinations.length; i < ilength; i++) {
-				var tagCombination = [];
+				var tagCombination = [], combination = combinations[i];
 				for(var j = 0, jlength = combinations[i].length; j < jlength; j++) {
-					tagCombination.push(tagList[combinations[i][j]]);
+					tagCombination.push(tagList[combination[j]]);
 				}
 				result.push(tagCombination.join(' '));
 			}
