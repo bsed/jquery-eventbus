@@ -1,5 +1,5 @@
 /**
- * Tagged EventBus plugin 1.1.2
+ * Tagged EventBus plugin 1.1.3
  *
  * Copyright (c) 2009 Filatov Dmitry (alpha@zforms.ru)
  * Dual licensed under the MIT and GPL licenses:
@@ -57,16 +57,26 @@ var tagsToList = function(tags) {
 		};
 	})();
 
-var fnIdsCounter = 0, tagsToIds = {};
+var idsCounter = 0, tagsToIds = {};
 
 $.eventBus = {
 
 	bind : function(tags, fn, ctx) {
 
-		typeof fn.__eb_id == 'undefined' && (fn.__eb_id = ++fnIdsCounter);
-
-		var tagHash = tagsToList(tags).join(' ');
-		(tagsToIds[tagHash] || (tagsToIds[tagHash] = {}))[fn.__eb_id] = { fn : fn, ctx : ctx };
+		if(typeof tags != 'string') {
+			$.each(tags, function(tag) {
+				$.eventBus.bind(tag, this, fn); // there is fn = ctx
+			});
+		}
+		else {
+			typeof fn.__eb_id == 'undefined' && (fn.__eb_id = ++idsCounter);
+			ctx && typeof ctx.__eb_id == 'undefined' && (ctx.__eb_id = ++idsCounter);
+			var tagHash = tagsToList(tags).join(' ');
+			(tagsToIds[tagHash] || (tagsToIds[tagHash] = {}))[fn.__eb_id + (ctx? ' ' + ctx.__eb_id : '')] = {
+				fn  : fn,
+				ctx : ctx
+			};
+		}
 
 		return this;
 
@@ -90,14 +100,24 @@ $.eventBus = {
 
 	trigger : function(tags, data) {
 
-		var calledFns = {};
+		var fns = [], uniqIds = {};
 		$.each(getTagCombinations(tagsToList(tags)), function() {
-			tagsToIds[this] && $.each(tagsToIds[this], function(id) {
-				if(!calledFns[id]) {
-					this.fn.call(this.ctx || window, data);
-					calledFns[id] = true;
+			var tags = this;
+			tagsToIds[tags] && $.each(tagsToIds[tags], function(id) {
+				if(!uniqIds[id]) {
+					fns.push({
+						tagCount : tags.split(' ').length,
+						fn       : this.fn,
+						ctx      : this.ctx
+					});
+					uniqIds[id] = id;
 				}
 			});
+		});
+		$.each(fns.sort(function(a, b) {
+				return a.tagCount - b.tagCount;
+			}), function() {
+			this.fn.call(this.ctx || window, data);
 		});
 
 		return this;
