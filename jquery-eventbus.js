@@ -1,5 +1,5 @@
 /**
- * Tagged EventBus plugin 1.1.4
+ * Tagged EventBus plugin 1.1.5
  *
  * Copyright (c) 2009 Filatov Dmitry (alpha@zforms.ru)
  * Dual licensed under the MIT and GPL licenses:
@@ -61,7 +61,7 @@ var idsCounter = 0, tagsToIds = {};
 
 $.eventBus = {
 
-	bind : function(tags, fn, ctx) {
+	bind : function(tags, fn, ctx, data) {
 
 		if(typeof tags != 'string') {
 			$.each(tags, function(tag) {
@@ -73,8 +73,9 @@ $.eventBus = {
 			ctx && typeof ctx.__eb_id == 'undefined' && (ctx.__eb_id = ++idsCounter);
 			var tagHash = tagsToList(tags).join(' ');
 			(tagsToIds[tagHash] || (tagsToIds[tagHash] = {}))[fn.__eb_id + (ctx? ' ' + ctx.__eb_id : '')] = {
-				fn  : fn,
-				ctx : ctx
+				fn   :  fn,
+				ctx  : ctx,
+				data : data
 			};
 		}
 
@@ -111,7 +112,8 @@ $.eventBus = {
 					fns.push({
 						tagCount : tags.split(' ').length,
 						fn       : this.fn,
-						ctx      : this.ctx
+						ctx      : this.ctx,
+						data     : this.data
 					});
 					uniqIds[id] = id;
 				}
@@ -120,7 +122,7 @@ $.eventBus = {
 		$.each(fns.sort(function(a, b) {
 				return a.tagCount - b.tagCount;
 			}), function() {
-			this.fn.call(this.ctx || window, data);
+			this.fn.call(this.ctx || window, data, this.data);
 		});
 
 		return this;
