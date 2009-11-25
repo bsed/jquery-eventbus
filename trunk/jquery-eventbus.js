@@ -1,10 +1,13 @@
 /**
- * Tagged EventBus plugin 1.2.0
+ * Tagged EventBus plugin
  *
  * Copyright (c) 2009 Filatov Dmitry (alpha@zforms.ru)
  * Dual licensed under the MIT and GPL licenses:
  * http://www.opensource.org/licenses/mit-license.php
  * http://www.gnu.org/licenses/gpl.html
+ *
+ * @version 1.2.1
+ * @requires $.identify
  *
  */
 
@@ -53,7 +56,7 @@ var tagsToList = function(tags) {
 		};
 	})();
 
-var idsCounter = 0, tagsToIds = {};
+var tagsToIds = {};
 
 $.eventBus = {
 
@@ -65,11 +68,9 @@ $.eventBus = {
 			});
 		}
 		else {
-			typeof fn.__eb_id == 'undefined' && (fn.__eb_id = ++idsCounter);
-			ctx && typeof ctx.__eb_id == 'undefined' && (ctx.__eb_id = ++idsCounter);
 			var tagHash = tagsToList(tags).join(' ');
-			(tagsToIds[tagHash] || (tagsToIds[tagHash] = {}))[fn.__eb_id + (ctx? ' ' + ctx.__eb_id : '')] = {
-				fn   :  fn,
+			(tagsToIds[tagHash] || (tagsToIds[tagHash] = {}))[$.identify(fn) + (ctx? ' ' + $.identify(ctx) : '')] = {
+				fn   : fn,
 				ctx  : ctx,
 				data : data
 			};
@@ -89,8 +90,8 @@ $.eventBus = {
 		else {
 			var tagHash = tagsToList(tags).join(' ');
 			tagsToIds[tagHash] && fn?
-				tagsToIds[tagHash][fn.__eb_id + (ctx? ' ' + ctx.__eb_id : '')] &&
-					delete tagsToIds[tagHash][fn.__eb_id + (ctx? ' ' + ctx.__eb_id : '')] :
+				tagsToIds[tagHash][$.identify(fn) + (ctx? ' ' + $.identify(ctx) : '')] &&
+					delete tagsToIds[tagHash][$.identify(fn) + (ctx? ' ' + $.identify(ctx) : '')] :
 				delete tagsToIds[tagHash];
 		}
 
